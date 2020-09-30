@@ -15,22 +15,22 @@ class Mover:
         """
         self.base_movement = rospy.Publisher('/mobile_base_controller/cmd_vel', Twist, queue_size = 15)
 
-    def go_left(self, speed: float, time: int):
+    def go_left(self, speed: float, distance: float):
         """
         Makes the robot go to the left by specifying the speed in meters per
         second and the time in deciseconds.
         """
         self.rotate('counterclockwise', 90, 30)
-        self.go_forward(speed, time)
+        self.go_forward(speed, distance)
         self.rotate('clockwise', 90, 30)
 
-    def go_right(self, speed: float, time: int):
+    def go_right(self, speed: float, distance: float):
         """
         Makes the robot go to the right by specifying the speed in meters per
         second and the time in deciseconds.
         """
         self.rotate('clockwise', 90, 30)
-        self.go_forward(speed, time)
+        self.go_forward(speed, distance)
         self.rotate('counterclockwise', 90, 30)
 
     def rotate(self, rotation_type: str, angle: int, speed: int):
@@ -61,33 +61,48 @@ class Mover:
         velocity = Twist()
         self.base_movement.publish(velocity)
 
-    def go_forward(self, speed: float, time: int):
+    def go_forward(self, speed: float, distance: float):
         """
         Makes the robot go forward by specifying the speed in meters per second
-        and the time in deciseconds.
+        and the distance in meters.
         """
         velocity = Twist()
-        velocity.linear.x = speed
+        velocity.linear.x = abs(speed)
 
-        for _ in range(time):
+        t_0 = rospy.Time.now().to_sec()
+        current_distance = 0
+
+        while current_distance < distance:
             self.base_movement.publish(velocity)
-            rospy.sleep(0.1)
+            t_1 = rospy.Time.now().to_sec()
+            current_distance = speed * (t_1 - t_0)
 
         velocity = Twist()
         self.base_movement.publish(velocity)
 
-    def go_back(self, speed: float, time: int):
+    def go_back(self, speed: float, distance: float):
         """
-        Makes the robot go back by specifying the speed in meters per second and
-        the time in deciseconds.
+        Makes the robot go back by specifying the speed in meters per second
+        and the distance in meters.
         """
         velocity = Twist()
-        velocity.linear.x = -speed
+        velocity.linear.x = -abs(speed)
 
-        for _ in range(time):
+        t_0 = rospy.Time.now().to_sec()
+        current_distance = 0
+
+        while current_distance < distance:
             self.base_movement.publish(velocity)
-            rospy.sleep(0.1)
+            t_1 = rospy.Time.now().to_sec()
+            current_distance = speed * (t_1 - t_0)
 
         velocity = Twist()
         self.base_movement.publish(velocity)
 
+
+if __name__ == '__main__':
+    rospy.init_node('test')
+    mover = Mover()
+    mover.go_back(1, 1)
+    rospy.sleep(7)
+    mover.go_forward(1, 1)
